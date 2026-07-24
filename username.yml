@@ -1,0 +1,14 @@
+---
+- name: Get username and print it
+  hosts: all
+  gather_facts: no
+
+  vars_prompt:
+    - name: username
+      prompt: "Enter your name"
+      private: no
+
+  tasks:
+    - name: Print username on the server
+      debug:
+        msg: "Hello, {{ username }}! This message is from {{ inventory_hostname }}"
