@@ -1,0 +1,36 @@
+- hosts: localhost
+    gather_facts: false
+    vars:
+      node_ids: [<id_a>, <id_b>, <id_c>]
+    tasks:
+      - name: Loop over each target node (serial lookup+patch+collect)
+        include_tasks: edit_node.yml
+        loop: "{{ node_ids }}"
+  
+      - name: Launch the Workflow
+        ansible.controller.launch_workflow_template:
+          workflow_template: test_reusable_wf
+
+  edit_node.yml:
+  - name: Lookup Job and Node Details
+    ansible.controller.workflow_node_wait:   # or a simple uri GET, see note below
+    # simplest: use uri module directly against
+    # /api/controller/v2/workflow_job_template_nodes/{{ item }}/
+
+  - name: Update Node
+    ansible.builtin.uri:
+      url: "https://<controller>/api/controller/v2/workflow_job_template_nodes/{{ item }}/"
+      method: PATCH
+      force_basic_auth: true
+      url_username: "{{ controller_username }}"
+      url_password: "{{ controller_password }}"
+      body_format: json
+      body: {job_tags: "repro-{{ item }}"}
+      validate_certs: false
+    async: 30
+    poll: 5   # <-- the bug: collecting immediately, per node
+    
+  - name: Clear vars
+    ansible.builtin.set_fact:
+      node_detail: null
+
